@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Map My Risk — El the Freedom Fairy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07040a;--pink:#ff2ea6;--pink-soft:#ffb8e2;--pink-dim:rgba(255,46,166,.18);--panel:rgba(255,46,166,.045);--radius:16px;
+  --font:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--pink-soft);font-family:var(--font);font-weight:300;line-height:1.7;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:
+  radial-gradient(60vw 40vh at 15% 0%,rgba(255,46,166,.10),transparent 70%),radial-gradient(50vw 40vh at 90% 100%,rgba(190,60,255,.08),transparent 70%)}
+a{color:var(--pink);text-decoration:none}
+
+/* ===== Map My Risk (scoped under #mmr) ===== */
+#mmr{max-width:760px;margin:0 auto;padding:40px 20px 70px}
+#mmr .prompt{color:var(--pink);opacity:.7;font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+#mmr .prompt::before{content:"> "}
+#mmr h1{font-size:clamp(2.2rem,8vw,3.6rem);font-weight:800;line-height:1.05;color:var(--pink);
+  text-shadow:0 0 18px rgba(255,46,166,.65),0 0 42px rgba(255,46,166,.3);margin-bottom:18px;letter-spacing:-.02em}
+#mmr h2{font-size:1.3rem;font-weight:800;color:var(--pink);text-shadow:0 0 12px rgba(255,46,166,.5);margin:36px 0 12px}
+#mmr p{margin-bottom:12px}
+#mmr .small{font-size:.78rem;opacity:.75}
+#mmr .card{background:var(--panel);border:1px solid var(--pink-dim);border-radius:var(--radius);padding:24px;margin-bottom:16px}
+#mmr .btn{display:inline-block;font-family:var(--font);font-size:.85rem;padding:11px 20px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--pink);color:var(--pink);background:transparent;margin:6px 8px 6px 0;transition:.2s}
+#mmr .btn.solid{background:var(--pink);color:var(--bg);box-shadow:0 0 18px rgba(255,46,166,.5)}
+#mmr .btn:hover{box-shadow:0 0 18px rgba(255,46,166,.6)}
+#mmr .btn:disabled{opacity:.35;cursor:default;box-shadow:none}
+#mmr .screen{display:none}
+#mmr .screen.on{display:block;animation:mmrIn .45s cubic-bezier(.2,.7,.2,1)}
+@keyframes mmrIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* progress + questions */
+#mmr .bar{height:6px;border-radius:9px;background:rgba(255,46,166,.1);overflow:hidden;margin:6px 0 22px}
+#mmr .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff8fd0,var(--pink));box-shadow:0 0 10px var(--pink);transition:width .4s}
+#mmr .qmeta{display:flex;justify-content:space-between;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+#mmr .q{font-size:1.15rem;font-weight:600;color:var(--pink);margin:6px 0 18px;line-height:1.45}
+#mmr .opts{display:grid;gap:10px}
+#mmr .hint{font-size:.75rem;font-weight:300;color:var(--pink-soft);opacity:.8;margin-top:10px;line-height:1.6}
+#mmr .flags{font-size:.82rem;border:1px solid var(--pink);border-radius:12px;padding:10px 14px;margin:0 0 12px;background:rgba(255,46,166,.08)}
+#mmr .flags:empty{display:none}
+#mmr .flags ul{margin:4px 0 0 18px}
+#mmr .opt{all:unset;box-sizing:border-box;cursor:pointer;display:block;padding:14px 18px;border-radius:12px;border:1px solid var(--pink-dim);
+  font-family:var(--font);font-size:.88rem;color:var(--pink-soft);background:rgba(255,46,166,.03);transition:.2s}
+#mmr .opt:hover,#mmr .opt:focus-visible{border-color:var(--pink);background:rgba(255,46,166,.08)}
+#mmr .opt.sel{border-color:var(--pink);background:rgba(255,46,166,.16);color:#fff;box-shadow:0 0 14px rgba(255,46,166,.3)}
+#mmr .nav{display:flex;justify-content:space-between;margin-top:18px}
+
+/* results */
+#mmr .band{display:inline-block;font-weight:800;font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;padding:5px 14px;border-radius:999px;
+  border:1px solid var(--pink);color:var(--pink);margin-bottom:10px}
+#mmr .band.sev{background:var(--pink);color:var(--bg);box-shadow:0 0 18px var(--pink)}
+#mmr .youare{font-size:.8rem;opacity:.75;letter-spacing:.1em;text-transform:uppercase}
+#mmr .profile{font-size:clamp(1.6rem,6vw,2.4rem);font-weight:800;color:var(--pink);text-shadow:0 0 16px rgba(255,46,166,.6);line-height:1.1;margin:4px 0 12px}
+#mmr .viz{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center}
+@media (max-width:620px){#mmr .viz{grid-template-columns:1fr}}
+#mmr svg.radar{width:100%;height:auto;display:block}
+#mmr .dom{margin-bottom:10px}
+#mmr .dom .l{display:flex;justify-content:space-between;font-size:.75rem}
+#mmr .dom .t{height:8px;border-radius:9px;background:rgba(255,46,166,.08);border:1px solid var(--pink-dim);overflow:hidden}
+#mmr .dom .t i{display:block;height:100%;background:linear-gradient(90deg,#ff8fd0,var(--pink));transition:width .5s}
+#mmr .legend{font-size:.68rem;opacity:.7;margin-top:6px}
+#mmr .legend span{display:inline-block;width:14px;height:3px;vertical-align:middle;margin:0 6px 0 10px;background:var(--pink)}
+#mmr .legend span.d{background:none;border-top:2px dashed #ffb8e2}
+#mmr .actions li{list-style:none;padding:12px 0;border-bottom:1px dashed var(--pink-dim)}
+#mmr .actions li:last-child{border:0}
+#mmr .actions b{color:var(--pink);font-weight:600}
+#mmr .eff{display:inline-block;font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--pink-dim);border-radius:999px;padding:1px 8px;margin-left:6px;opacity:.85}
+#mmr .toggles label{display:flex;gap:12px;align-items:center;padding:9px 0;cursor:pointer;font-size:.85rem}
+#mmr .toggles input{appearance:none;-webkit-appearance:none;width:38px;height:20px;border-radius:999px;border:1px solid var(--pink);position:relative;flex:none;cursor:pointer;transition:.2s}
+#mmr .toggles input::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--pink-soft);transition:.2s}
+#mmr .toggles input:checked{background:var(--pink);box-shadow:0 0 12px var(--pink)}
+#mmr .toggles input:checked::after{left:20px;background:var(--bg)}
+#mmr .whatif{font-size:.85rem;margin-top:8px}
+#mmr .case{border-left:2px solid var(--pink);padding:4px 0 4px 14px;margin:14px 0}
+#mmr .case .m{font-size:.7rem;opacity:.7}
+#mmr .case p{font-size:.82rem;margin:2px 0 0}
+#mmr .disc{font-size:.72rem;opacity:.65;border-top:1px dashed var(--pink-dim);padding-top:14px;margin-top:24px}
+
+/* print: a self-scoring checklist */
+#mmr .printonly{display:none}
+@media print{
+  body{background:#fff;color:#000}
+  body::before{display:none}
+  #mmr .screen,#mmr .noprint{display:none!important}
+  #mmr .printonly{display:block}
+  #mmr h1,#mmr h2{color:#000;text-shadow:none}
+  #mmr .pq{break-inside:avoid;margin:10px 0;font-size:10.5pt}
+  #mmr .pq b{display:block}
+  #mmr .pq div{margin-left:14px}
+  #mmr table{border-collapse:collapse;width:100%;font-size:10pt;margin-top:8px}
+  #mmr td,#mmr th{border:1px solid #999;padding:4px 6px;text-align:left}
+}
+</style>
+</head>
+<body>
+<div id="mmr">
+
+  <!-- INTRO -->
+  <section class="screen on" id="mmr-intro">
+    <div class="prompt">./map_my_risk</div>
+    <h1>Map My Risk</h1>
+    <p>Twenty quick questions about how visible you are, how quickly your crypto could be moved, and who around you could be used as leverage. At the end you get a risk band, a profile, real 2026 cases that may reflect your profile, and the changes that may help you.</p>
+    <div class="card">
+      <p><b style="color:var(--pink)">Private by design.</b> Everything runs in your browser. Nothing you choose is sent, saved or seen by anyone, including me.</p>
+      <p class="small">Built on my coding of 2026 wrench attack cases from Jameson Lopp's database. This is an awareness tool, not a prediction.</p>
+      <p class="small" style="margin:0">This tool should not be solely relied upon to build your security architecture. Please do your own research and consult professionals if desired.</p>
+    </div>
+    <button class="btn solid" id="mmr-start">Start ▸</button>
+    <button class="btn" id="mmr-print1">Print the paper version</button>
+    <a class="btn" href="map-my-risk-checklist.pdf" download>Download printable sheet (PDF)</a>
+    <button class="btn mmr-dl">Download for offline use</button>
+  </section>
+
+  <!-- QUESTIONS -->
+  <section class="screen" id="mmr-quiz">
+    <div class="qmeta"><span id="mmr-dom"></span><span id="mmr-num"></span></div>
+    <div class="bar"><i id="mmr-prog"></i></div>
+    <div class="card">
+      <div class="q" id="mmr-q"></div>
+      <div class="opts" id="mmr-opts"></div>
+    </div>
+    <div class="nav">
+      <button class="btn" id="mmr-back">◂ Back</button>
+      <button class="btn solid" id="mmr-next" disabled>Next ▸</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="mmr-res">
+    <div class="prompt">./your_risk_map</div>
+    <span class="band" id="mmr-band"></span>
+    <div class="youare">You are</div>
+    <div class="profile" id="mmr-profile"></div>
+    <p id="mmr-pdesc"></p>
+    <div class="flags" id="mmr-flags"></div>
+
+    <div class="card viz">
+      <div>
+        <svg class="radar" id="mmr-radar" viewBox="0 0 380 300"></svg>
+        <div class="legend"><span class="d"></span>you now<span></span>with changes</div>
+      </div>
+      <div id="mmr-doms"></div>
+    </div>
+
+    <h2>Three changes that may lower your risk</h2>
+    <div class="card"><ul class="actions" id="mmr-actions"></ul></div>
+
+    <h2>What if…</h2>
+    <div class="card">
+      <p class="small">Switch on a change and watch your map shrink.</p>
+      <div class="toggles" id="mmr-toggles"></div>
+      <p class="whatif" id="mmr-whatif"></p>
+    </div>
+
+    <div id="mmr-weap"></div>
+
+    <h2 id="mmr-casesh">Real 2026 cases that may reflect your profile</h2>
+    <div class="card" id="mmr-cases"></div>
+
+    <div class="noprint">
+      <button class="btn solid" id="mmr-retake">Retake</button>
+      <button class="btn" id="mmr-print2">Print checklist</button>
+      <a class="btn" href="map-my-risk-checklist.pdf" download>Download printable sheet (PDF)</a>
+      <button class="btn mmr-dl">Download for offline use</button>
+    </div>
+    <p class="disc">Map My Risk is an educational awareness tool based on publicly reported cases, which under-represent unreported attacks. It is not a prediction, a security audit or professional advice. If you believe you are in danger, contact local police.</p>
+  </section>
+
+  <!-- PRINT VERSION -->
+  <section class="printonly" id="mmr-printv">
+    <h1>Map My Risk — paper checklist</h1>
+    <p>Circle one answer per question. Add the points (in brackets) for each area, then use the table at the end.</p>
+    <div id="mmr-plist"></div>
+    <h2>Scoring</h2>
+    <table id="mmr-ptable"></table>
+    <p style="margin-top:10px;font-size:9pt">El the Freedom Fairy · Map My Risk · awareness tool, not a prediction.</p>
+  </section>
+
+</div>
+
+<script>
+(() => {
+// ================= DATA =================
+const DOMAINS = {
+  vis: {name:'Visibility',   w:.20, q:'Can you be found?'},
+  sig: {name:'Wealth signals', w:.20, q:'Do you look worth it?'},
+  acc: {name:'Access speed', w:.25, q:'How fast could funds move under duress?'},
+  hh:  {name:'Household',    w:.20, q:'Who could be used as leverage?'},
+  rt:  {name:'Routines',     w:.15, q:'Where are your weak moments?'}
+};
+// each option: [label, points]. h = helper text. multi = tick all that apply (context only, not scored)
+const Q = [
+ {d:'vis', t:'Do people know you hold crypto?', o:[['No one knows',0],['A few trusted individuals',1],['A wider circle: friends, extended family or a small social media following',2],['I am publicly known in crypto',3]]},
+ {d:'vis', t:'Have you given ID (KYC) to exchanges?', o:[['No',0],['One service',1],['Several services',2],['Yes, and my data was in a leak',3]]},
+ {d:'vis', t:'Could a stranger find your home address from public sources?', o:[['Very unlikely',0],['Possibly',1],['Likely',2],['Yes, easily',3]]},
+ {d:'vis', t:'How visible are you at crypto events?', o:[['I don\'t go',0],['I attend occasionally',1],['I attend regularly',2],['I speak or am recognisable',3]]},
+ {d:'vis', t:'Do you live where tax or wealth records are public by law?', h:'Some countries publish income, tax or company records that can reveal wealth and an address.', o:[['No',0],['Yes, but limited',2],['Yes, very transparent',3]]},
+ {d:'sig', t:'Do you talk about your specific holdings or gains?', o:[['Never',0],['Only with close friends',1],['In group chats or forums',2],['Publicly, or I show them off',3]]},
+ {d:'sig', t:'Is crypto part of your work?', o:[['No',0],['I work in crypto, behind the scenes',1],['Founder, executive or known trader',2],['I run a visible service: exchange, OTC, ATM',3]]},
+ {d:'sig', t:'Does your lifestyle signal wealth?', o:[['No',0],['A little',1],['Noticeably',2],['Clearly: cars, watches, luxury',3]]},
+ {d:'acc', t:'How much could you send right now from the devices you carry?', h:'No amount is too small to attract an attack, but more on hand means more to lose.', o:[['Under US$1,000',0],['US$1,000 – 10,000',1],['US$10,000 – 100,000',2],['Over US$100,000, or most of my holdings',3]]},
+ {d:'acc', t:'How is your main stash secured?', o:[['Multisig, keys in different places',0],['Hardware wallet stored away from home',1],['Hardware wallet or seed phrase at home',2],['Exchange account or phone app',3]]},
+ {d:'acc', t:'Is there any delay before large amounts can move?', o:[['Yes, time-locks or a vault',0],['Withdrawal limits',1],['No deliberate delay, but it takes several devices',2],['No, it\'s instant',3]]},
+ {d:'acc', t:'Do you have a plan for what to do under duress?', o:[['Yes, and I\'ve practised it',0],['Yes, untested',1],['No',3]]},
+ {d:'hh',  t:'Is anyone else able to access your crypto?', h:'Anyone who can move your funds can be targeted instead of you.', o:[['Only me',0],['My partner',1],['Immediate family',2],['Wider family, staff or friends',3]]},
+ {d:'hh',  t:'Who lives with you or depends on you?', o:[['I live alone',0],['A partner',1],['Children or elderly parents',2],['Family and/or household staff',3]]},
+ {d:'hh',  t:'Would your family know what to do if someone used them to reach you?', h:'Relatives were targeted in roughly 25–30% of cases by early 2026 (Chainalysis).', o:[['Yes, we have a plan',0],['Roughly',1],['No',3]]},
+ {d:'rt',  t:'Do you buy or sell crypto in person (P2P, OTC, for cash)?', h:'A quarter of attacks in Ordekian et al.\'s study happened during peer-to-peer trades.', o:[['Never',0],['Sometimes',2],['Regularly',3]]},
+ {d:'rt',  t:'How predictable are your movements?', o:[['Unpredictable',0],['Somewhat predictable',1],['Very predictable, or shared online in real time',3]]},
+ {d:'rt',  t:'How secure is your home?', o:[['Alarm, cameras, strong entry',0],['Some measures',1],['Basic locks',2],['Nothing in particular',3]]},
+ {d:'ctx', multi:true, t:'Which of these do you keep in your main home?', h:'Tick all that apply. This doesn\'t change your score; it tailors your advice.', o:[['Firearms',0],['Knives, swords or blades',0],['Improvised weapons (e.g. a baseball bat)',0],['None',0]]},
+ {d:'rt',  t:'Do you live in or regularly travel to places with many reported wrench attacks?', h:'<a href="https://jlopp.github.io/physical-bitcoin-attacks/" target="_blank" rel="noopener">Explore Lopp\'s interactive data ↗</a>', o:[['No',0],['I sometimes travel to them',1],['I live in or regularly travel to them',3]]}
+];
+// red flags: one of these alone keeps you at Elevated or higher
+const FLAGS = [
+  [0,3,'You are publicly known in crypto'],
+  [1,3,'Your data was in a leak'],
+  [8,3,'Most of your holdings could be moved from devices you carry'],
+  [15,2,'You trade crypto in person regularly']
+];
+const PROFILES = {
+  quiet:     {n:'The Quiet Stacker',      d:'You\'re hard to find and hard to rob. The job now is to keep it that way as your holdings grow.', c:'How others stayed safe'},
+  visible:   {n:'The Visible Holder',     d:'Your biggest risk is being findable. Most 2026 attacks were targeted, so the way in starts with someone learning who you are and where you live.'},
+  beacon:    {n:'The Beacon',             d:'You signal that you\'re worth targeting. Talk, work and lifestyle tell offenders there is something to take.'},
+  vault:     {n:'The Open Vault',         d:'If someone reached you, your funds could move fast. Forced transfers were the most common way crypto was taken in 2026.'},
+  household: {n:'The Exposed Household',  d:'Your family is the way in. Relatives were targeted in roughly a quarter of 2026 cases to put pressure on the holder.'},
+  trader:    {n:'The Street Trader',      d:'In-person trades are your weak moment. Fake buyers and sellers are one of the most common set-ups in the data.'},
+  habit:     {n:'The Creature of Habit',  d:'Predictable routines and a soft home make it easy to plan around you.'}
+};
+const ACTIONS = {
+  vis: [['Remove any mention of your crypto from public profiles and posts.','Free'],
+        ['Make your home address harder to find: opt out of data-broker sites and use a PO box for crypto-related mail.','Low cost'],
+        ['Use as few exchanges that hold your ID as you can, and watch for data-breach notices.','Free']],
+  sig: [['Stop sharing amounts or gains, even in private group chats.','Free'],
+        ['Keep your crypto work identity separate from your home and family life.','Free'],
+        ['Avoid linking visible luxury to your crypto identity.','Choice']],
+  acc: [['Carry less. Keep only an amount you could afford to lose on the phone or devices you have with you, and store the rest elsewhere.','Free'],
+        ['Move your savings into a multisig wallet with the keys kept in separate locations, so no one can force you to move it all at once.','Low cost'],
+        ['Add a time-delay or vault to large withdrawals, and rehearse what you would do under duress.','Bigger change']],
+  hh:  [['Limit who knows you hold crypto, and who can access it.','Free'],
+        ['Agree a family plan, including a code word, for what to do if someone contacts or threatens them.','Free'],
+        ['Make sure no family member can move your funds on their own.','Bigger change']],
+  rt:  [['Avoid buying or selling crypto in person. If you must, meet in public, start small and bring someone.','Free'],
+        ['Vary your routines and stop sharing your location in real time.','Free'],
+        ['Improve home security with an alarm, cameras and stronger entry points.','Low cost']]
+};
+// what-if: [label, question index, value it sets]
+const WHATIF = [
+  ['Carry under US$1,000 on my devices',8,0],
+  ['Move savings to multisig, keys apart',9,0],
+  ['Add a time-delay or vault',10,0],
+  ['Make and practise a duress plan',11,0],
+  ['Stop talking about my holdings',5,0],
+  ['Fewer people know I hold crypto',0,1],
+  ['Agree a family plan',14,0],
+  ['Stop trading in person',15,0],
+  ['Upgrade home security',17,0]
+];
+const CASES = {"visible": [{"date": "January 13 2026", "loc": "Sweden", "text": "Home invasion and torture of a League of Legends streamer. He didn't have cryptocurrency, so attackers only took his Pokémon cards; 2 suspects were arrested.", "link": "https://spilled.gg/ratirl-home-invasion-subathon-months/", "v": "C-3"}, {"date": "June 11 2026", "loc": "Vitória, Espírito Santo, Brazil", "text": "A crypto influencer was kidnapped out of his Porsche while on the street. He handed over USD 3,000 before escaping; one suspect was arrested.", "link": "https://livecoins.com.br/influenciador-de-criptomoedas-e-sequestrado-no-es-mas-consegue-fugir/", "v": "C-4"}, {"date": "July 3 2026", "loc": "Ribeirão Preto, São Paulo, Brazil", "text": "Two men posing as police kidnapped an 18-year-old influencer in São Paulo after learning he invested in cryptocurrencies.", "link": "https://www.bandab.com.br/nacional/falsos-policiais-sequestram-empresario-extorquem-750-mil/amp/", "v": "C-4"}, {"date": "June 5 2026", "loc": "Ételfay, Somme, France", "text": "On June 5 2026 in Ételfay (Somme), a resident returning from walking her grandson to the bus stop was surprised in her yard by three masked armed men who came to extort her cryptocurrencies, her granddaughter inside the house;…", "link": "https://www.courrier-picard.fr/id735705/article/2026-07-29/cryptomonnaie-etelfay-trois-hommes-armes-et-encagoules-avaient-surgi", "v": "C-1"}, {"date": "September 2026", "loc": "Saint-Juery, Tarn, France", "text": "In early September 2026 at around 3 a.m., two armed, masked and gloved men entered through the garage of a 22-year-old game developer's house in Saint-Juery, threatened him with a firearm, struck him on the head with its butt and…", "link": "https://www.ladepeche.fr/2026/10/11/temoignage-je-nai-plus-de-crypto-laissez-moi-tranquille-des-individus-armes-debarquent-chez-lui-en-pleine-nuit-un-jeune-tarnais-victime-dune-tentative-13590947.php", "v": "C-3"}, {"date": "March 4 2026", "loc": "London, England", "text": "UK game developer and erstwhile crypto enthusiast Sillytuna has reported being forced to hand over almost $24 million worth of crypto in a violent robbery.", "link": "https://protos.com/game-developer-sillytuna-reports-losing-24m-of-crypto-in-uk-wrench-attack/", "v": "C-2"}], "vault": [{"date": "February 12 2026", "loc": "Mahmutlar, Alanya, Turkey", "text": "In Alanya's Mahmutlar district, four hooded armed individuals intercepted a 46-year-old Ukrainian woman in her residence hallway, forced her inside and tied her hands, then made her unlock her crypto account via facial…", "link": "https://www.milliyet.com.tr/gundem/alanyada-silahli-kripto-gaspi-zorla-yuz-tanima-yaptirip-18-bin-avroyu-aktardilar-4-supheli-tutuklandi-7537158", "v": "C-2"}, {"date": "June 8 2026", "loc": "Coconut Creek, Florida, United States", "text": "On June 8 2026 in a Coconut Creek apartment, Sheendalie Joseph allegedly let Tevin Dean (31) in while the occupant was upstairs; Dean held the victim at gunpoint, stripped and bound him, held a kitchen knife to his head and…", "link": "https://www.local10.com/news/local/2026/07/30/coconut-creek-man-arrested-in-armed-home-invasion-faces-12-felony-charges/", "v": "C-2"}, {"date": "September 6 2026", "loc": "Ivanovo, Ivanovo Oblast, Russia", "text": "Five men attacked a 22-year-old programmer near his home, forced him into a car and took him to a garage. Under threats and violence they made him reveal his wallet passwords, emptied his crypto holdings and took valuables from…", "link": "https://ria.ru/20261027/delo-2127366225.html", "v": "C-4"}, {"date": "January 2026", "loc": "Andijan, Uzbekistan", "text": "After lengthy surveillance, members of an organized criminal group from Andijan lured a young cryptocurrency exchanger to a fake client meeting at a supermarket, forced him into a Damas van while posing as law enforcement…", "link": "https://podrobno.uz/cat/proisshestviya/v-andizhane-presekli-deyatelnost-opg-zanimavsheysya-vymogatelstvom-kriptovalyuty-video/", "v": "C-2"}, {"date": "April 17 2026", "loc": "Malacca, Malaysia", "text": "3 South Korean men abduct fellow South Korean, demand $10M USDT from his family, receive $3M. He was rescued by police and most of the ransom recovered", "link": "https://www.nst.com.my/news/nation/2026/05/1434963/three-south-koreans-court-over-rm396mil-genting-highlands-crypto", "v": "C-4"}], "household": [{"date": "January 14 2026", "loc": "Sallanches, Haute-Savoie, France", "text": "A couple kidnapped for their son's money, €8 million in cryptocurrency.", "link": "https://www.ledauphine.com/faits-divers-justice/2026/01/17/un-couple-de-retraites-kidnappe-a-sallanches-pour-8-millions-d-euros", "v": "C-4"}, {"date": "January 25 2026", "loc": "Voiron, Isère, France", "text": "A 74-year-old man was kidnapped by individuals seeking to extort cryptocurrency from his son. They tried to cut off his little finger, eventually released him without ransom being paid.", "link": "https://www.franceinfo.fr/replay-radio/le-choix-franceinfo/temoignage-le-but-c-est-que-ton-fils-sorte-les-millions-16-heures-de-sevices-le-recit-glacant-d-un-retraite-victime-d-un-enlevement-lie-aux-cryptomonnaies_7907888.html", "v": "C-4"}, {"date": "February 4 2026", "loc": "Saint-Martin-le-Vinoux, Isère, France", "text": "A commando broke down the door of the home of a 35-year-old Grenoble magistrate and abducted her along with her 67-year-old mother, demanding a cryptocurrency ransom from the magistrate's partner, who works in a start-up with…", "link": "https://www.ledauphine.com/faits-divers-justice/2026/02/06/cryptomonnaies-une-iseroise-et-sa-mere-enlevees-par-un-commando-avant-d-etre-liberees-30-heures-plus-tard-dans-la-drome", "v": "C-4"}, {"date": "July 21 2026", "loc": "Gandhidham, Gujarat, India", "text": "On July 21 2026, transporter Dilip Majethiya was lured from his Gandhidham office by an acquaintance under the pretext of collecting a debt, taken to a house, tied up, beaten and threatened with a knife while the kidnappers…", "link": "https://english.gujaratsamachar.com/news/gujarat/anjar-kidnapping-case-dubai-based-brother-extorted-indian-rupee555-cr-in-usdt-7-arrested-71077766334", "v": "C-4"}, {"date": "May 20 2026", "loc": "Seine-et-Marne, France", "text": "5 hooded accomplices attempted to kidnap victim from her home, but were stopped by neighbors who heard her screams. 2 attackers were quickly arrested.", "link": "https://www.lejdd.fr/Societe/info-jdd-seine-et-marne-lepouse-dun-entrepreneur-en-cryptomonnaies-victime-dune-tentative-denlevement-174468", "v": "C-2"}, {"date": "January 27 2026", "loc": "Bender, Transnistria, Moldova", "text": "Five men tipped off about a young online seller's money boxed in his car with two BMWs, took his girlfriend hostage and beat him until he transferred 11,942 USDT and handed over cash; three Tiraspol residents were remanded and…", "link": "https://www.md.kp.media/online/news/6821608/", "v": "C-3"}], "trader": [{"date": "March 6 2026", "loc": "Hung Hom, Hong Kong", "text": "Man seeking to trade detained and assaulted by 4 men at a hotel and forced to hand over crypto passwords, leading to the theft of about $680,000 in cryptocurrency and 42 kg of silver.", "link": "https://news.tvb.com/tc/greaterchina/69ac3e0d101d7dfc2604ca2b", "v": "C-2"}, {"date": "May 2026", "loc": "Krasnoyarsk, Russia", "text": "A 24-year-old Krasnoyarsk resident and a 19-year-old from Achinsk arranged to meet a 30-year-old cryptocurrency seller on Sverdlovskaya Street to exchange RUB 600,000 in cash for cryptocurrency. Once the coins had been…", "link": "https://newslab.ru/news/1435242", "v": "C-2"}, {"date": "August 19 2026", "loc": "Chennai, Tamil Nadu, India", "text": "A man who knew his attackers through online cryptocurrency trading was called to the Somerset Hotel in R. A. Puram, Chennai. Seven men, some posing as police officers, confined and beat him and, under threat of bodily harm, made…", "link": "https://indiankanoon.org/doc/70816877/", "v": "C-4"}, {"date": "February 7 2026", "loc": "Indore, Madhya Pradesh, India", "text": "In Indore, crypto trader Abdul Fahad was lured under the pretext of a USDT purchase, forcibly taken from an ATM to an isolated location, stripped of INR 200,000 in cash and forced to transfer 4,000 USDT (~INR 400,000) from his…", "link": "https://www.freepressjournal.in/indore/indore-news-crypto-trader-abducted-robbed-of-6-lakhs-cops-accused-of-robbery", "v": "C-2"}, {"date": "June 17 2026", "loc": "Karachi, Pakistan", "text": "A vehicle struck Karachi crypto trader Jan Sher Khan off his motorcycle, after which men in plain clothes chased, beat and forced him into the car; four armed men took him to an unknown location, subjected him to violence and…", "link": "https://www.thenews.pk/print/1421361-crypto-trader-alleges-short-term-kidnapping-data-theft", "v": "C-4"}], "beacon": [{"date": "October 6 2026", "loc": "Nong Prue, Pattaya, Thailand", "text": "Three armed robbers stormed a luxury home, taking cash and Rolex watches before forcing a Turkish businessman to transfer cryptocurrency worth US$820,000. Arrest warrants were issued for 5 Chinese nationals.", "link": "https://chromecrumpet.com/armed-gang-storms-luxury-pattaya-home-steals-rolex-watches-and-forces-820000-crypto-transfer/", "v": "C-1"}, {"date": "July 25 2026", "loc": "Bankya, Bulgaria", "text": "A coffee and vending machine importer was attacked at his Bankya home by two hooded men who had waited and filmed around the house before his return from dinner; investigators say he was beaten and tortured for about three hours,…", "link": "https://www.24chasa.bg/bulgaria/article/23293574", "v": "C-5"}, {"date": "April 29 2026", "loc": "Koh Samui, Thailand", "text": "Armed home invasion of tourist while he was sleeping, 70,000 GBP of cryptocurrency taken. (original link)", "link": "https://www.facebook.com/crimeasianews/posts/three-british-nationals-wanted-for-armed-robbery-of-businessman-on-koh-samui-the/122110417971072195/", "v": "C-1"}, {"date": "March 10 2026", "loc": "Bogdanlia, Bulgaria", "text": "A 48-year-old former colleague let himself into the home of a 52-year-old IT engineer through an unlocked door and stabbed him to death overnight in an attempt to seize ~EUR 1.7 million in cryptocurrency, reportedly torturing the…", "link": "https://offnews.bg/112/1-7-mln-evro-v-kriptovaluta-zad-zhestoko-ubijstvo-v-s-bogdanlia-863336.html", "v": "C-5"}, {"date": "January 16 2026", "loc": "Pasay City, Philippines", "text": "Home invasion by 4 men who tied up and threatened a Chinese man, at least $400,000 in crypto stolen.", "link": "https://www.abs-cbn.com/news/nation/2026/1/16/police-rescue-chinese-national-from-kidnappers-2000", "v": "C-2"}], "habit": [{"date": "March 27 2026", "loc": "Saint-Paul, near Limoges, Haute-Vienne, France", "text": "At dawn on March 27 2026 in Saint-Paul (Haute-Vienne), two masked armed individuals attacked a resident outside his home, forced him inside and beat him; realizing he was about to be tied up he escaped through a window, and the…", "link": "https://www.ici.fr/nouvelle-aquitaine/haute-vienne-87/saint-paul/haute-vienne-un-jeune-homme-de-22-ans-condamne-a-10-ans-de-prison-ferme-pour-une-agression-liee-a-de-la-cryptomonnaie-6905848", "v": "C-2"}, {"date": "March 16 2026", "loc": "Loire-Atlantique, France", "text": "Armed men broke into the home of a middle-aged crypto company CEO near Nantes, struck him in the head and were driven off by the alarm system.", "link": "https://www.ouest-france.fr/economie/cryptomonnaie/enlevements-dans-le-milieu-de-la-cryptomonnaie-un-patron-cible-par-des-hommes-armes-la-nuit-derniere-pres-de-nantes-8cab17f0-2142-11f1-a6e8-58f5162ee52a", "v": "C-3"}, {"date": "January 9 2026", "loc": "Saint-Léger-sous-Cholet, Maine-et-Loire, France", "text": "43 years old man kidnapped for his crypto.", "link": "https://www.ouest-france.fr/societe/faits-divers/jai-entendu-des-cris-dans-la-rue-enleve-au-petit-matin-pour-ses-cryptomonnaies-pres-de-cholet-f97a7740-ed71-11f0-ae78-1a0629cc1f87", "v": "C-4"}, {"date": "June 17 2026", "loc": "Karachi, Pakistan", "text": "A vehicle struck Karachi crypto trader Jan Sher Khan off his motorcycle, after which men in plain clothes chased, beat and forced him into the car; four armed men took him to an unknown location, subjected him to violence and…", "link": "https://www.thenews.pk/print/1421361-crypto-trader-alleges-short-term-kidnapping-data-theft", "v": "C-4"}, {"date": "March 31 2026", "loc": "Strasbourg, Bas-Rhin, France", "text": "A 25-year-old woman was kidnapped and held hostage by two men for cryptocurrency.", "link": "https://france3-regions.franceinfo.fr/grand-est/bas-rhin/strasbourg-0/cryptomonnaie-deux-hommes-interpelles-pour-enlevement-et-sequestration-d-une-jeune-femme-a-strasbourg-3349945.html", "v": "C-4"}], "quiet": [{"date": "June 7 2026", "loc": "Rome, Italy", "text": "At about 2:30 a.m., a Colombian financial operator who converted cash into Bitcoin and USDT was lured by a fellow Colombian woman into a Rome B&B lobby where a gang led by a trafficker nicknamed 'il Presidente' beat him and…", "link": "https://www.fanpage.it/roma/broker-sequestrato-e-torturato-a-roma-il-trucco-del-codice-demergenza-e-il-tatuaggio-sul-collo-a-forma-di-bacio/", "v": "C-4"}, {"date": "September 2026", "loc": "Saint-Juery, Tarn, France", "text": "In early September 2026 at around 3 a.m., two armed, masked and gloved men entered through the garage of a 22-year-old game developer's house in Saint-Juery, threatened him with a firearm, struck him on the head with its butt and…", "link": "https://www.ladepeche.fr/2026/10/11/temoignage-je-nai-plus-de-crypto-laissez-moi-tranquille-des-individus-armes-debarquent-chez-lui-en-pleine-nuit-un-jeune-tarnais-victime-dune-tentative-13590947.php", "v": "C-3"}, {"date": "March 16 2026", "loc": "Loire-Atlantique, France", "text": "Armed men broke into the home of a middle-aged crypto company CEO near Nantes, struck him in the head and were driven off by the alarm system.", "link": "https://www.ouest-france.fr/economie/cryptomonnaie/enlevements-dans-le-milieu-de-la-cryptomonnaie-un-patron-cible-par-des-hommes-armes-la-nuit-derniere-pres-de-nantes-8cab17f0-2142-11f1-a6e8-58f5162ee52a", "v": "C-3"}, {"date": "July 17 2026", "loc": "Grivesnes, France", "text": "Same group from June 24 and June 26 attempted to break into the couple's home but was scared off by the alarm.", "link": "https://www.ici.fr/hauts-de-france/somme-80/grivesnes/somme-un-couple-sequestre-chez-lui-et-cible-de-plusieurs-intrusions-pour-de-la-cryptomonnaie-qu-il-ne-possede-pas-9784554", "v": "N/A"}, {"date": "March 8 2026", "loc": "Winnetka, Illinois, United States", "text": "Fake delivery person used to gain entry and invade home at gunpoint. Demanded victim's ledger; the victim bit an attacker's finger and fled when a child arrived home. Attackers took jewelry and electronic devices but failed to…", "link": "https://chicago.suntimes.com/chicago-gangs/2026/04/28/chicago-crime-lil-zay-osama-drill-rap-winnetka-robbery", "v": "C-2"}]};
+
+// ================= STATE =================
+let i = 0; const ans = Array(Q.length).fill(null);
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = id => document.getElementById(id);
+const show = id => { document.querySelectorAll('#mmr .screen').forEach(s => s.classList.toggle('on', s.id === id)); window.scrollTo(0,0); };
+
+// ================= QUIZ =================
+function renderQ(){
+  const q = Q[i];
+  $('mmr-dom').textContent = DOMAINS[q.d] ? DOMAINS[q.d].name : 'Context';
+  $('mmr-num').textContent = `${i+1} / ${Q.length}`;
+  $('mmr-prog').style.width = `${(i)/Q.length*100}%`;
+  $('mmr-q').innerHTML = esc(q.t) + (q.h ? `<div class="hint">${q.h}</div>` : '');
+  const on = k => q.multi ? (ans[i]||[]).includes(k) : ans[i]===k;
+  $('mmr-opts').innerHTML = q.o.map((o,k) => `<button class="opt ${on(k)?'sel':''}" data-k="${k}">${q.multi?(on(k)?'☑ ':'☐ '):''}${esc(o[0])}</button>`).join('');
+  $('mmr-back').disabled = i === 0;
+  $('mmr-next').disabled = ans[i] === null || (q.multi && !ans[i].length);
+  $('mmr-next').textContent = i === Q.length-1 ? 'See my map ▸' : 'Next ▸';
+}
+$('mmr-opts').addEventListener('click', e => {
+  const b = e.target.closest('.opt'); if (!b) return;
+  const k = +b.dataset.k, q = Q[i];
+  if (q.multi) {
+    const none = q.o.length - 1; let s = ans[i] || [];
+    if (k === none) s = s.includes(none) ? [] : [none];
+    else { s = s.filter(x => x !== none); s = s.includes(k) ? s.filter(x => x !== k) : [...s, k]; }
+    ans[i] = s; renderQ(); return;
+  }
+  ans[i] = k; renderQ();
+  setTimeout(() => { if (i < Q.length-1) { i++; renderQ(); } }, 220);
+});
+$('mmr-next').addEventListener('click', () => { if (i < Q.length-1) { i++; renderQ(); } else results(); });
+$('mmr-back').addEventListener('click', () => { if (i > 0) { i--; renderQ(); } });
+$('mmr-start').addEventListener('click', () => { i = 0; show('mmr-quiz'); renderQ(); });
+$('mmr-retake').addEventListener('click', () => { ans.fill(null); i = 0; show('mmr-quiz'); renderQ(); });
+
+// ================= SCORING =================
+const pts = (k, a) => (a[k] === null || a[k] === undefined || Q[k].multi) ? 0 : Q[k].o[a[k]][1];
+const maxPts = k => Math.max(...Q[k].o.map(o => o[1]));
+function score(a){
+  const s = {};
+  for (const d in DOMAINS){
+    const idx = Q.map((q,k)=>q.d===d?k:-1).filter(k=>k>=0);
+    s[d] = Math.round(idx.reduce((t,k)=>t+pts(k,a),0) / idx.reduce((t,k)=>t+maxPts(k),0) * 100);
+  }
+  const total = Math.round(Object.keys(DOMAINS).reduce((t,d)=>t+s[d]*DOMAINS[d].w,0));
+  return {s, total};
+}
+const band = t => t < 25 ? ['Low',''] : t < 45 ? ['Elevated',''] : t < 65 ? ['High',''] : ['Severe','sev'];
+function profileOf(r, a){
+  if (r.total < 25) return 'quiet';
+  const top = Object.keys(r.s).sort((x,y)=>r.s[y]-r.s[x] || DOMAINS[y].w-DOMAINS[x].w)[0];
+  return {vis:'visible', sig:'beacon', acc:'vault', hh:'household', rt: (pts(15,a)>=2 ? 'trader' : 'habit')}[top];
+}
+
+// ================= RADAR =================
+function radar(base, alt){
+  const keys = Object.keys(DOMAINS), cx=190, cy=150, R=100, n=keys.length;
+  const pt = (k, v) => { const a = -Math.PI/2 + k*2*Math.PI/n, r = R*v/100; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; };
+  let g = '';
+  [25,50,75,100].forEach(l => g += `<polygon points="${keys.map((_,k)=>pt(k,l).join(',')).join(' ')}" fill="none" stroke="rgba(255,46,166,${l===100?.35:.15})"/>`);
+  keys.forEach((d,k) => { const [x,y]=pt(k,100), [lx,ly]=pt(k,124);
+    g += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="rgba(255,46,166,.15)"/>`;
+    g += `<text x="${lx}" y="${ly}" fill="#ffb8e2" font-size="10" font-family="JetBrains Mono, monospace" text-anchor="middle" dominant-baseline="middle">${DOMAINS[d].name}</text>`; });
+  const poly = (v, fill, stroke, dash) => `<polygon points="${keys.map((d,k)=>pt(k,Math.max(v[d],3)).join(',')).join(' ')}" fill="${fill}" stroke="${stroke}" stroke-width="2" ${dash?'stroke-dasharray="5 4"':''} style="transition:all .5s"/>`;
+  g += poly(alt, 'rgba(255,46,166,.28)', '#ff2ea6', false);
+  g += poly(base, 'none', '#ffb8e2', true);
+  keys.forEach((d,k)=>{ const [x,y]=pt(k,Math.max(alt[d],3)); g += `<circle cx="${x}" cy="${y}" r="3.5" fill="#ff2ea6" style="filter:drop-shadow(0 0 4px #ff2ea6)"/>`; });
+  $('mmr-radar').innerHTML = `<defs></defs>${g}`;
+}
+
+// ================= RESULTS =================
+function results(){
+  $('mmr-prog').style.width = '100%';
+  const r = score(ans), flags = FLAGS.filter(f => ans[f[0]] === f[1]);
+  let [bn, bc] = band(r.total);
+  if (flags.length && bn === 'Low') [bn, bc] = ['Elevated', ''];
+  const p = (flags.length && r.total < 25) ? profileOf({total:25, s:r.s}, ans) : profileOf(r, ans);
+  $('mmr-band').textContent = `${bn} risk`; $('mmr-band').className = 'band ' + bc;
+  $('mmr-profile').textContent = PROFILES[p].n;
+  $('mmr-pdesc').textContent = PROFILES[p].d;
+  $('mmr-flags').innerHTML = flags.length ? '<b>Red flags:</b><ul>' + flags.map(f => `<li>${esc(f[2])}</li>`).join('') + '</ul>' : '';
+  const w = ans[18] || [], none = Q[18].o.length - 1;
+  $('mmr-weap').innerHTML = (w.length && !w.includes(none))
+    ? '<h2>About the weapons in your home</h2><div class="card"><p>Weapons don\'t lower your score. In 2026 cases, some victims escaped by resisting, but one man who fired at attackers was himself convicted, and weapons kept at home can be taken and used against you or your family.</p><p class="small" style="margin:0">Store anything you keep securely, know your local law, and make sure your plan is to get people out, not to fight.</p></div>'
+    : '';
+  // top 3 actions from the two weakest areas
+  const order = Object.keys(r.s).sort((x,y)=>r.s[y]-r.s[x]);
+  const picks = r.total < 25 ? [ACTIONS[order[0]][0], ACTIONS[order[1]][0], ACTIONS[order[2]][0]]
+                             : [ACTIONS[order[0]][0], ACTIONS[order[0]][1], ACTIONS[order[1]][0]];
+  const doms = r.total < 25 ? [order[0],order[1],order[2]] : [order[0],order[0],order[1]];
+  $('mmr-actions').innerHTML = picks.map((a,k)=>`<li><b>${DOMAINS[doms[k]].name}:</b> ${esc(a[0])}<span class="eff">${a[1]}</span></li>`).join('');
+  // toggles
+  $('mmr-toggles').innerHTML = WHATIF.filter(w => pts(w[1], ans) > Q[w[1]].o[w[2]][1])
+    .map((w,k)=>`<label><input type="checkbox" data-q="${w[1]}" data-v="${w[2]}"> ${esc(w[0])}</label>`).join('') || '<p class="small">You\'ve already made the main changes this tool can model.</p>';
+  // cases
+  $('mmr-casesh').textContent = PROFILES[p].c || 'Real 2026 cases that may reflect your profile';
+  $('mmr-cases').innerHTML = (CASES[p]||[]).map(c=>`<div class="case"><div class="m">${esc(c.date)} · ${esc(c.loc)} · Violence ${esc(c.v)}</div><p>${esc(c.text)} ${c.link?`<a href="${esc(c.link)}" target="_blank" rel="noopener">source ↗</a>`:''}</p></div>`).join('')
+    + '<p class="small" style="margin:10px 0 0">Cases from my coding of Jameson Lopp\'s 2026 database.</p>';
+  update();
+  show('mmr-res');
+}
+function update(){
+  const base = score(ans);
+  const alt = ans.slice();
+  document.querySelectorAll('#mmr-toggles input:checked').forEach(t => alt[+t.dataset.q] = +t.dataset.v);
+  const r = score(alt);
+  radar(base.s, r.s);
+  $('mmr-doms').innerHTML = Object.keys(DOMAINS).map(d=>`<div class="dom"><div class="l"><span>${DOMAINS[d].name}</span><span>${r.s[d]}%</span></div><div class="t"><i style="width:${r.s[d]}%"></i></div></div>`).join('')
+    + `<div class="dom" style="margin-top:14px"><div class="l"><b style="color:var(--pink)">Overall</b><b style="color:var(--pink)">${r.total}%</b></div></div>`;
+  const changed = r.total !== base.total;
+  $('mmr-whatif').innerHTML = changed ? `Overall: <b>${base.total}% → ${r.total}%</b> (${band(base.total)[0]} → ${band(r.total)[0]})` : '';
+}
+$('mmr-toggles').addEventListener('change', update);
+
+// ================= PRINT + DOWNLOAD =================
+const TOTALMAX = Q.reduce((t,q,k)=>t+(q.multi?0:maxPts(k)),0);
+function buildPrint(){
+  $('mmr-plist').innerHTML = Object.keys(DOMAINS).map(d => `<h2>${DOMAINS[d].name} — ${DOMAINS[d].q}</h2>` +
+    Q.filter(q=>q.d===d).map(q=>`<div class="pq"><b>☐ ${esc(q.t)}</b>${q.o.map(o=>`<div>○ ${esc(o[0])} (${o[1]})</div>`).join('')}</div>`).join('')).join('')
+    + `<h2>Context (not scored)</h2>` + Q.filter(q=>q.d==='ctx').map(q=>`<div class="pq"><b>☐ ${esc(q.t)}</b>${q.o.map(o=>`<div>☐ ${esc(o[0])}</div>`).join('')}</div>`).join('');
+  $('mmr-ptable').innerHTML = '<tr><th>Area</th><th>Your points</th><th>Max</th></tr>' +
+    Object.keys(DOMAINS).map(d=>`<tr><td>${DOMAINS[d].name}</td><td></td><td>${Q.map((q,k)=>q.d===d?maxPts(k):0).reduce((a,b)=>a+b,0)}</td></tr>`).join('') +
+    `<tr><th>Total</th><td></td><td>${TOTALMAX}</td></tr><tr><td colspan="3">Under ${Math.round(TOTALMAX*.25)} Low · ${Math.round(TOTALMAX*.25)}–${Math.round(TOTALMAX*.45)-1} Elevated · ${Math.round(TOTALMAX*.45)}–${Math.round(TOTALMAX*.65)-1} High · ${Math.round(TOTALMAX*.65)}+ Severe. Red flags (publicly known, data leaked, most holdings on you, regular in-person trades) mean at least Elevated. Your highest-scoring area is where to start.</td></tr>`;
+}
+buildPrint();
+show('mmr-intro');
+const doPrint = () => { try { window.print(); } catch(e) {} };
+$('mmr-print1').addEventListener('click', doPrint);
+$('mmr-print2').addEventListener('click', doPrint);
+// Offline copy: re-downloads this page's own file so the copy starts fresh
+function saveFile(text){
+  const blob = new Blob([text], {type:'text/html'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'map-my-risk-offline.html';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+document.querySelectorAll('.mmr-dl').forEach(b => b.addEventListener('click', () => {
+  fetch(location.href.split('#')[0], {cache:'no-store'}).then(r => { if (!r.ok) throw 0; return r.text(); })
+    .then(saveFile)
+    .catch(() => {
+      ans.fill(null); show('mmr-intro');
+      saveFile('<!DOCTYPE html>\n' + document.documentElement.outerHTML);
+    });
+}));
+})();
+</script>
+</body>
+</html>
